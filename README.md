@@ -45,16 +45,6 @@ cd cats-vs-dogs-classifier
 pip install -r requirements.txt
 ```
 
-**requirements.txt (example):**
-
-```
-tensorflow
-numpy
-matplotlib
-streamlit
-pillow
-```
-
 ---
 
 ### 3️⃣ Download Dataset
