@@ -46,6 +46,32 @@
             background-clip: text;
         }
         
+        .model-status {
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        
+        .model-status.loading {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        
+        .model-status.success {
+            background: rgba(40, 167, 69, 0.2);
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        
+        .model-status.error {
+            background: rgba(220, 53, 69, 0.2);
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        
         .upload-area {
             border: 3px dashed #667eea;
             border-radius: 15px;
@@ -68,6 +94,12 @@
             transform: scale(1.02);
         }
         
+        .upload-area.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
         .file-input {
             display: none;
         }
@@ -88,6 +120,12 @@
         .upload-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
         
         .image-preview {
@@ -199,30 +237,26 @@
                 padding: 30px 15px;
             }
         }
-        
-        .error {
-            background: #ffe6e6;
-            border: 1px solid #ff6b6b;
-            color: #d63031;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🐱🐶 Cat vs Dog Classifier</h1>
-            <p>Upload an image and AI will tell you if it's a cat or dog!</p>
-            <p><em>Built with TensorFlow.js and deep learning</em></p>
+            <p>Upload an image and my trained TensorFlow model will predict if it's a cat or dog!</p>
+            <p><em>Using real CNN model with 60-63% accuracy</em></p>
         </div>
         
-        <div class="upload-area" onclick="document.getElementById('fileInput').click()" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)">
+        <div id="model-status" class="model-status loading">
+            🔄 Loading trained TensorFlow model...
+        </div>
+        
+        <div id="upload-area" class="upload-area disabled" onclick="handleUploadClick()" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)">
             <div>
                 <h3>📸 Upload or Drag & Drop an Image</h3>
                 <p>Supports JPG, PNG, GIF formats</p>
-                <button class="upload-btn" type="button">Choose Image</button>
+                <p><em>Upload disabled until model loads...</em></p>
+                <button id="upload-btn" class="upload-btn" type="button" disabled>Choose Image</button>
                 <input type="file" id="fileInput" class="file-input" accept="image/*" onchange="handleImageUpload(event)">
             </div>
         </div>
@@ -233,7 +267,7 @@
         
         <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
-            <p>Analyzing image with AI...</p>
+            <p>Analyzing image with trained CNN...</p>
         </div>
         
         <div id="result" class="result" style="display: none;">
@@ -242,34 +276,30 @@
             <p id="technical-details"></p>
         </div>
         
-        <div id="error" class="error" style="display: none;">
-            <h3>⚠️ Model Loading Error</h3>
-            <p>This demo uses a simplified model for demonstration. For the full TensorFlow model, please run the project locally.</p>
-        </div>
-        
         <div class="info">
-            <h3>🧠 How It Works</h3>
-            <p>This classifier uses a Convolutional Neural Network (CNN) trained on thousands of cat and dog images. The model analyzes visual features like edges, textures, and shapes to make predictions.</p>
+            <h3>🧠 About This Model</h3>
+            <p>This classifier uses a <strong>real trained Convolutional Neural Network</strong> that I built and trained on thousands of cat and dog images. The model was trained locally and converted to TensorFlow.js to run in your browser.</p>
             
             <h3>🛠️ Tech Stack</h3>
             <div class="tech-stack">
                 <span class="tech-tag">TensorFlow</span>
+                <span class="tech-tag">Keras</span>
                 <span class="tech-tag">CNN</span>
-                <span class="tech-tag">Transfer Learning</span>
+                <span class="tech-tag">TensorFlow.js</span>
                 <span class="tech-tag">JavaScript</span>
-                <span class="tech-tag">HTML5</span>
                 <span class="tech-tag">GitHub Pages</span>
             </div>
             
             <h3>📊 Model Performance</h3>
-            <p><strong>Training Accuracy:</strong> ~85%</p>
-            <p><strong>Validation Accuracy:</strong> ~82%</p>
-            <p><strong>Model Architecture:</strong> Custom CNN with 4 convolutional blocks</p>
+            <p><strong>Training Accuracy:</strong> ~60%</p>
+            <p><strong>Validation Accuracy:</strong> ~63%</p>
+            <p><strong>Architecture:</strong> Custom CNN with 4 convolutional blocks</p>
+            <p><strong>Input Size:</strong> 150x150 RGB images</p>
             
             <h3>🔗 Links</h3>
             <p>
-                <a href="https://github.com/your-username/cats-vs-dogs-classifier" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600;">
-                    📁 View Source Code on GitHub
+                <a href="https://github.com/Mana-Peiravian/cats-vs-dogs-classifier" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600;">
+                    📁 View Complete Source Code on GitHub
                 </a>
             </p>
         </div>
@@ -277,38 +307,65 @@
 
     <script>
         let model = null;
+        let isModelLoaded = false;
         
-        // Load your actual TensorFlow.js model
+        // Load the real TensorFlow.js model
         async function loadModel() {
+            const statusEl = document.getElementById('model-status');
+            const uploadArea = document.getElementById('upload-area');
+            const uploadBtn = document.getElementById('upload-btn');
+            
             try {
                 console.log('🔄 Loading model from:', './models/tfjs_model/model.json');
+                
+                statusEl.textContent = '🔄 Downloading model files...';
+                statusEl.className = 'model-status loading';
+                
                 model = await tf.loadLayersModel('./models/tfjs_model/model.json');
+                
                 console.log('✅ Model loaded successfully!');
-                updateModelStatus('✅ Real trained model loaded');
+                console.log('Model input shape:', model.inputs[0].shape);
+                console.log('Model output shape:', model.outputs[0].shape);
+                
+                isModelLoaded = true;
+                
+                // Update UI
+                statusEl.textContent = '✅ Real TensorFlow model loaded! Ready for predictions.';
+                statusEl.className = 'model-status success';
+                
+                uploadArea.classList.remove('disabled');
+                uploadArea.querySelector('p em').textContent = 'Ready to analyze your images!';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Choose Image';
+                
                 return true;
+                
             } catch (error) {
                 console.error('❌ Model loading failed:', error);
-                updateModelStatus('❌ Model loading failed - using demo mode');
+                
+                statusEl.innerHTML = `
+                    <strong>❌ Model Loading Failed</strong><br>
+                    <small>Error: ${error.message}</small><br>
+                    <small>Make sure model files are uploaded to GitHub</small>
+                `;
+                statusEl.className = 'model-status error';
+                
                 return false;
             }
         }
         
-        function updateModelStatus(message) {
-            const statusEl = document.getElementById('model-status');
-            if (statusEl) {
-                statusEl.textContent = message;
+        function handleUploadClick() {
+            if (isModelLoaded) {
+                document.getElementById('fileInput').click();
             }
         }
         
-        // Fallback demo prediction (if model fails to load)
-        function simulateModelPrediction(imageData) {
-            console.log('Using fallback demo prediction');
-            // Simple demo prediction
-            const prediction = Math.random(); // Random for demo
-            setTimeout(() => showResult(prediction), 1000);
-        }
-        
         function handleImageUpload(event) {
+            if (!isModelLoaded) {
+                alert('Please wait for the model to load first!');
+                return;
+            }
+            
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -331,77 +388,74 @@
         }
         
         async function classifyImage(imageData) {
+            if (!isModelLoaded || !model) {
+                alert('Model not loaded yet! Please wait.');
+                return;
+            }
+            
             // Show loading
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').style.display = 'none';
             
-            // Try to use real model first
-            if (model) {
-                console.log('Using real TensorFlow.js model');
-                await predictWithRealModel(imageData);
-            } else {
-                console.log('Model not loaded, trying to load...');
-                const loaded = await loadModel();
-                if (loaded && model) {
-                    await predictWithRealModel(imageData);
-                } else {
-                    console.log('Falling back to demo mode');
-                    simulateModelPrediction(imageData);
-                }
-            }
-        }
-        
-        async function predictWithRealModel(imageData) {
             try {
                 const img = new Image();
                 img.onload = async function() {
                     try {
-                        // Create canvas and preprocess image
+                        console.log('🖼️ Processing image...');
+                        
+                        // Create canvas and resize to 150x150 (same as training)
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         canvas.width = 150;
                         canvas.height = 150;
                         ctx.drawImage(img, 0, 0, 150, 150);
                         
-                        // Convert to tensor (same preprocessing as training)
+                        // Convert to tensor with same preprocessing as training
                         const tensor = tf.browser.fromPixels(canvas)
                             .toFloat()
-                            .div(255.0)
-                            .expandDims(0);
+                            .div(255.0)  // Normalize to [0,1]
+                            .expandDims(0);  // Add batch dimension [1, 150, 150, 3]
                         
-                        console.log('Tensor shape:', tensor.shape);
+                        console.log('📐 Input tensor shape:', tensor.shape);
                         
-                        // Make prediction
+                        // Make prediction with your real trained model
                         const prediction = await model.predict(tensor);
-                        const score = await prediction.data();
+                        const scores = await prediction.data();
+                        const score = scores[0];  // Binary classification output
                         
-                        console.log('Raw prediction:', score[0]);
-                        showResult(score[0]);
+                        console.log('🎯 Raw model output:', score);
                         
-                        // Clean up
+                        // Hide loading and show result
+                        document.getElementById('loading').style.display = 'none';
+                        showResult(score);
+                        
+                        // Clean up memory
                         tensor.dispose();
                         prediction.dispose();
+                        
                     } catch (predError) {
-                        console.error('Prediction error:', predError);
-                        simulateModelPrediction(imageData);
+                        console.error('❌ Prediction error:', predError);
+                        document.getElementById('loading').style.display = 'none';
+                        alert('Prediction failed: ' + predError.message);
                     }
                 };
+                
                 img.onerror = function() {
-                    console.error('Image loading failed');
-                    simulateModelPrediction(imageData);
+                    console.error('❌ Image loading failed');
+                    document.getElementById('loading').style.display = 'none';
+                    alert('Failed to load image');
                 };
+                
                 img.src = imageData;
+                
             } catch (error) {
-                console.error('Real model prediction failed:', error);
-                simulateModelPrediction(imageData);
+                console.error('❌ Classification error:', error);
+                document.getElementById('loading').style.display = 'none';
+                alert('Classification failed: ' + error.message);
             }
         }
         
         function showResult(prediction) {
-            // Hide loading
-            document.getElementById('loading').style.display = 'none';
-            
-            // Show result
             const resultDiv = document.getElementById('result');
             const predictionText = document.getElementById('prediction');
             const confidenceText = document.getElementById('confidence');
@@ -409,6 +463,7 @@
             
             let label, emoji, confidence, className;
             
+            // Your model outputs: >0.5 = Dog, <0.5 = Cat
             if (prediction > 0.5) {
                 label = "This is a DOG!";
                 emoji = "🐶";
@@ -422,17 +477,25 @@
             }
             
             predictionText.textContent = `${emoji} ${label}`;
-            confidenceText.textContent = `Confidence: ${confidence}%`;
-            technicalDetails.textContent = `Raw prediction score: ${prediction.toFixed(4)} (${prediction > 0.5 ? 'Dog' : 'Cat'} threshold: 0.5)`;
+            confidenceText.textContent = `Model Confidence: ${confidence}%`;
+            technicalDetails.innerHTML = `
+                <strong>Technical Details:</strong><br>
+                Raw prediction score: ${prediction.toFixed(4)}<br>
+                Threshold: 0.5 (${prediction > 0.5 ? 'Dog' : 'Cat'} predicted)
+            `;
             
             resultDiv.className = `result ${className}`;
             resultDiv.style.display = 'block';
+            
+            console.log(`✅ Final prediction: ${label} (${confidence}% confidence)`);
         }
         
         // Drag and drop handlers
         function dragOverHandler(event) {
-            event.preventDefault();
-            event.currentTarget.classList.add('dragover');
+            if (isModelLoaded) {
+                event.preventDefault();
+                event.currentTarget.classList.add('dragover');
+            }
         }
         
         function dragLeaveHandler(event) {
@@ -440,6 +503,8 @@
         }
         
         function dropHandler(event) {
+            if (!isModelLoaded) return;
+            
             event.preventDefault();
             event.currentTarget.classList.remove('dragover');
             
@@ -455,61 +520,11 @@
             }
         }
         
-        // Initialize when page loads
+        // Load model when page loads
         window.onload = async function() {
-            console.log('Page loaded, initializing...');
-            
-            // Add model status indicator
-            const header = document.querySelector('.header');
-            const statusDiv = document.createElement('div');
-            statusDiv.id = 'model-status';
-            statusDiv.style.cssText = `
-                text-align: center;
-                margin: 15px 0;
-                padding: 10px;
-                background: rgba(102, 126, 234, 0.1);
-                border-radius: 10px;
-                font-weight: 600;
-                font-size: 0.9em;
-            `;
-            statusDiv.textContent = '🔄 Loading your trained model...';
-            header.appendChild(statusDiv);
-            
-            // Try to load the real model
+            console.log('🚀 Page loaded, initializing real model...');
             await loadModel();
-            
-            // Show demo note
-            setTimeout(() => {
-                const note = document.createElement('div');
-                note.style.cssText = `
-                    position: fixed;
-                    top: 10px;
-                    right: 10px;
-                    background: rgba(255, 193, 7, 0.9);
-                    color: #333;
-                    padding: 10px 15px;
-                    border-radius: 10px;
-                    font-size: 0.9em;
-                    max-width: 250px;
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                    z-index: 1000;
-                `;
-                note.innerHTML = model 
-                    ? '🎉 <strong>Real Model Loaded!</strong> This uses your actual trained TensorFlow model.' 
-                    : '⚠️ <strong>Demo Mode:</strong> Model loading failed. Using fallback predictions.';
-                document.body.appendChild(note);
-                
-                // Remove note after 7 seconds
-                setTimeout(() => {
-                    note.style.opacity = '0';
-                    note.style.transition = 'opacity 0.5s ease';
-                    setTimeout(() => note.remove(), 500);
-                }, 7000);
-            }, 2000);
         };
     </script>
-</head>
-<body>
-    <!-- Content is handled by the style and script above -->
 </body>
 </html>
