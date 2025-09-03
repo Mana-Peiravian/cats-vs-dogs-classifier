@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐱🐶 Cat vs Dog Classifier</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.10.0/tf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/3.19.0/tf.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -321,11 +321,10 @@
                 statusEl.textContent = '🔄 Downloading model files...';
                 statusEl.className = 'model-status loading';
                 
-                model = await tf.loadLayersModel('./models/tfjs_model/model.json');
+                model = await tf.loadGraphModel('./models/tfjs_model/model.json?v=20');
                 
-                console.log('✅ Model loaded successfully!');
-                console.log('Model input shape:', model.inputs[0].shape);
-                console.log('Model output shape:', model.outputs[0].shape);
+                console.log('GraphModel input nodes:', model.inputNodes);
+                console.log('GraphModel output nodes:', model.outputNodes);
                 
                 isModelLoaded = true;
                 
@@ -353,177 +352,44 @@
                 return false;
             }
         }
-        
-        function handleUploadClick() {
-            if (isModelLoaded) {
-                document.getElementById('fileInput').click();
+
+        async function runInference(tensor) {
+            let inputName  = (model.inputNodes && model.inputNodes[0]) || (model.inputs && model.inputs[0]?.name);
+            let outputName = (model.outputNodes && model.outputNodes[0]) || (model.outputs && model.outputs[0]?.name);
+
+            // Helpful fallbacks for common SavedModel→TFJS names
+            const candidates = [
+                inputName,
+                'serving_default_image:0',
+                'serving_default_input_1:0',
+                'image:0',
+                'input_1:0'
+            ].filter(Boolean);
+
+            let out;
+            let lastErr;
+            for (const name of candidates) {
+                try {
+                console.log('Trying input name:', name, 'output:', outputName);
+                out = await model.executeAsync({ [name]: tensor }, outputName ? [outputName] : undefined);
+                inputName = name; // lock the working one
+                break;
+                } catch (e) {
+                lastErr = e;
+                }
             }
-        }
-        
-        function handleImageUpload(event) {
-            if (!isModelLoaded) {
-                alert('Please wait for the model to load first!');
-                return;
+            if (!out) {
+                throw lastErr || new Error('Could not execute model with any candidate input name.');
             }
-            
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    showImagePreview(e.target.result);
-                    classifyImage(e.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-        
-        function showImagePreview(imageSrc) {
-            const preview = document.getElementById('imagePreview');
-            const img = document.getElementById('previewImg');
-            img.src = imageSrc;
-            preview.style.display = 'block';
-            
-            // Hide previous results
-            document.getElementById('result').style.display = 'none';
-        }
-        
-        async function classifyImage(imageData) {
-            if (!isModelLoaded || !model) {
-                alert('Model not loaded yet! Please wait.');
-                return;
-            }
-            
-            // Show loading
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result').style.display = 'none';
-            
-            try {
-                const img = new Image();
-                img.onload = async function() {
-                    try {
-                        console.log('🖼️ Processing image...');
-                        
-                        // Create canvas and resize to 150x150 (same as training)
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = 150;
-                        canvas.height = 150;
-                        ctx.drawImage(img, 0, 0, 150, 150);
-                        
-                        // Convert to tensor with same preprocessing as training
-                        const tensor = tf.browser.fromPixels(canvas)
-                            .toFloat()
-                            .div(255.0)  // Normalize to [0,1]
-                            .expandDims(0);  // Add batch dimension [1, 150, 150, 3]
-                        
-                        console.log('📐 Input tensor shape:', tensor.shape);
-                        
-                        // Make prediction with your real trained model
-                        const prediction = await model.predict(tensor);
-                        const scores = await prediction.data();
-                        const score = scores[0];  // Binary classification output
-                        
-                        console.log('🎯 Raw model output:', score);
-                        
-                        // Hide loading and show result
-                        document.getElementById('loading').style.display = 'none';
-                        showResult(score);
-                        
-                        // Clean up memory
-                        tensor.dispose();
-                        prediction.dispose();
-                        
-                    } catch (predError) {
-                        console.error('❌ Prediction error:', predError);
-                        document.getElementById('loading').style.display = 'none';
-                        alert('Prediction failed: ' + predError.message);
-                    }
-                };
-                
-                img.onerror = function() {
-                    console.error('❌ Image loading failed');
-                    document.getElementById('loading').style.display = 'none';
-                    alert('Failed to load image');
-                };
-                
-                img.src = imageData;
-                
-            } catch (error) {
-                console.error('❌ Classification error:', error);
-                document.getElementById('loading').style.display = 'none';
-                alert('Classification failed: ' + error.message);
-            }
-        }
-        
-        function showResult(prediction) {
-            const resultDiv = document.getElementById('result');
-            const predictionText = document.getElementById('prediction');
-            const confidenceText = document.getElementById('confidence');
-            const technicalDetails = document.getElementById('technical-details');
-            
-            let label, emoji, confidence, className;
-            
-            // Your model outputs: >0.5 = Dog, <0.5 = Cat
-            if (prediction > 0.5) {
-                label = "This is a DOG!";
-                emoji = "🐶";
-                confidence = (prediction * 100).toFixed(1);
-                className = "dog";
-            } else {
-                label = "This is a CAT!";
-                emoji = "🐱";
-                confidence = ((1 - prediction) * 100).toFixed(1);
-                className = "cat";
-            }
-            
-            predictionText.textContent = `${emoji} ${label}`;
-            confidenceText.textContent = `Model Confidence: ${confidence}%`;
-            technicalDetails.innerHTML = `
-                <strong>Technical Details:</strong><br>
-                Raw prediction score: ${prediction.toFixed(4)}<br>
-                Threshold: 0.5 (${prediction > 0.5 ? 'Dog' : 'Cat'} predicted)
-            `;
-            
-            resultDiv.className = `result ${className}`;
-            resultDiv.style.display = 'block';
-            
-            console.log(`✅ Final prediction: ${label} (${confidence}% confidence)`);
-        }
-        
-        // Drag and drop handlers
-        function dragOverHandler(event) {
-            if (isModelLoaded) {
-                event.preventDefault();
-                event.currentTarget.classList.add('dragover');
-            }
-        }
-        
-        function dragLeaveHandler(event) {
-            event.currentTarget.classList.remove('dragover');
-        }
-        
-        function dropHandler(event) {
-            if (!isModelLoaded) return;
-            
-            event.preventDefault();
-            event.currentTarget.classList.remove('dragover');
-            
-            const files = event.dataTransfer.files;
-            if (files.length > 0 && files[0].type.startsWith('image/')) {
-                const file = files[0];
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    showImagePreview(e.target.result);
-                    classifyImage(e.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-        
-        // Load model when page loads
-        window.onload = async function() {
-            console.log('🚀 Page loaded, initializing real model...');
-            await loadModel();
+
+            const y = Array.isArray(out) ? out[0] : out;
+            const scores = await y.data();
+            const score = scores[0];
+
+            if (Array.isArray(out)) out.forEach(t => t.dispose());
+            else y.dispose();
+
+            return score; 
         };
     </script>
 </body>
