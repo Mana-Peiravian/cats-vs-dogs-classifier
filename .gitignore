@@ -3,3 +3,4 @@
 /tfjs-k3/
 .venv/
 venv/
+models/savedmodel_k3/
