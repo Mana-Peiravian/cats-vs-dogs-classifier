@@ -1,13 +1,6 @@
-# virtual envs
-tfjs-env/
-k3-save/
-tfjs-k3/
+/tfjs-env/
+/k3-save/
+/tfjs-k3/
 .venv/
 venv/
-
-# large / training artifacts
-models/savedmodel_k3/
-*.h5
-*.keras
-**/variables/
-*.pb
+/models/savedmodel_k3/
