@@ -12,7 +12,8 @@ async function loadModel() {
     statusEl.textContent = '🔄 Downloading model files...';
     statusEl.className = 'model-status loading';
 
-    model = await tf.loadGraphModel('./models/tfjs_model/model.json?v=20');
+    model = await tf.loadGraphModel('./models/tfjs_model/model.json');
+
 
     console.log('GraphModel input nodes:', model.inputNodes);
     console.log('GraphModel output nodes:', model.outputNodes);
