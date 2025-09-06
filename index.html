@@ -3,6 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        img-src 'self' data: blob:;
+        script-src 'self' https://cdnjs.cloudflare.com 'unsafe-eval' 'wasm-unsafe-eval';
+        connect-src 'self' https://cdnjs.cloudflare.com data: blob:;
+        style-src 'self' 'unsafe-inline';
+        object-src 'none';
+        base-uri 'self';
+        frame-ancestors 'none';
+    ">
+
     <title>🐱🐶 Cat vs Dog Classifier</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/3.19.0/tf.min.js"></script>
     <style>
