@@ -68,7 +68,7 @@ cats-vs-dogs-classifier/
 
     model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
 
-````
+```
 
 2. **Save and export the model via export.py**
 
