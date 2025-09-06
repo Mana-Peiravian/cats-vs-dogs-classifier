@@ -8,7 +8,7 @@ async function loadModel() {
   const uploadArea = $('upload-area');
 
   try {
-    console.log('🔄 Loading model from:', './models/tfjs_model/model.json');
+    console.log('🔄 Loading model from:', './models/tfjs_model_fp16/model.json');
     statusEl.textContent = '🔄 Downloading model files...';
     statusEl.className = 'model-status loading';
 
