@@ -7,12 +7,15 @@ async function loadModel() {
   const statusEl = $('model-status');
   const uploadArea = $('upload-area');
 
+  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/Mana-Peiravian/cats-vs-dogs-classifier@v0.1.0/models/tfjs_model_fp16/model.json';
+  
+
   try {
-    console.log('🔄 Loading model from:', './models/tfjs_model_fp16/model.json');
+    console.log('🔄 Loading model from:', 'https://cdn.jsdelivr.net/gh/Mana-Peiravian/cats-vs-dogs-classifier@v0.1.0/models/tfjs_model_fp16/model.json');
     statusEl.textContent = '🔄 Downloading model files...';
     statusEl.className = 'model-status loading';
 
-    model = await tf.loadGraphModel('./models/tfjs_model_fp16/model.json');
+    model = await tf.loadGraphModel(MODEL_URL);
 
 
     console.log('GraphModel input nodes:', model.inputNodes);
