@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy"
       content="default-src 'self';
-               script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com;
+               script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com;
                style-src 'self' 'unsafe-inline';
                img-src 'self' data: blob:;
                connect-src 'self';
@@ -263,32 +263,25 @@
             🔄 Loading trained TensorFlow model...
         </div>
         
-        <div id="upload-area"
-            class="upload-area disabled"
-            role="region"
-            aria-label="Image upload area"
-            onclick="handleUploadClick()"
-            ondrop="dropHandler(event)"
-            ondragover="dragOverHandler(event)"
-            ondragleave="dragLeaveHandler(event)">
-
+        <div id="upload-area" class="upload-area disabled" role="region" aria-label="Image upload area">
             <div>
-                <h3>📸 Upload or Drag & Drop an Image</h3>
-                <p>Supports JPG, PNG, GIF formats</p>
-                <p><em>Upload disabled until model loads...</em></p>
-                <label for="fileInput" class="upload-btn" role="button" aria-label="Choose image to classify">
-                    Choose Image
-                  </label>
-                  <input
-                    type="file"
-                    id="fileInput"
-                    name="image"                
-                    class="file-input"
-                    accept="image/*"
-                    onchange="handleImageUpload(event)"
-                  />                 
+              <h3>📸 Upload or Drag & Drop an Image</h3>
+              <p>Supports JPG, PNG, GIF formats</p>
+              <p><em>Upload disabled until model loads...</em></p>
+          
+              <label for="fileInput" class="upload-btn" role="button" aria-label="Choose image to classify">
+                Choose Image
+              </label>
+              <input
+                type="file"
+                id="fileInput"
+                name="image"
+                class="file-input"
+                accept="image/*"
+              />
             </div>
-        </div>
+          </div>
+          
         
         <div id="imagePreview" class="image-preview" style="display: none;">
             <img id="previewImg" class="preview-img" alt="Uploaded image">
@@ -334,92 +327,6 @@
         </div>
     </div>
 
-    <script>
-        let model = null;
-        let isModelLoaded = false;
-        
-        // Load the real TensorFlow.js model
-        async function loadModel() {
-            const statusEl = document.getElementById('model-status');
-            const uploadArea = document.getElementById('upload-area');
-            const uploadBtn = document.getElementById('upload-btn');
-            
-            try {
-                console.log('🔄 Loading model from:', './models/tfjs_model/model.json');
-                
-                statusEl.textContent = '🔄 Downloading model files...';
-                statusEl.className = 'model-status loading';
-                
-                model = await tf.loadGraphModel('./models/tfjs_model/model.json?v=20');
-                
-                console.log('GraphModel input nodes:', model.inputNodes);
-                console.log('GraphModel output nodes:', model.outputNodes);
-                
-                isModelLoaded = true;
-                
-                // Update UI
-                statusEl.textContent = '✅ Real TensorFlow model loaded! Ready for predictions.';
-                statusEl.className = 'model-status success';
-                
-                uploadArea.classList.remove('disabled');
-                uploadArea.querySelector('p em').textContent = 'Ready to analyze your images!';
-                uploadBtn.disabled = false;
-                uploadBtn.textContent = 'Choose Image';
-                
-                return true;
-                
-            } catch (error) {
-                console.error('❌ Model loading failed:', error);
-                
-                statusEl.innerHTML = `
-                    <strong>❌ Model Loading Failed</strong><br>
-                    <small>Error: ${error.message}</small><br>
-                    <small>Make sure model files are uploaded to GitHub</small>
-                `;
-                statusEl.className = 'model-status error';
-                
-                return false;
-            }
-        }
-
-        async function runInference(tensor) {
-            let inputName  = (model.inputNodes && model.inputNodes[0]) || (model.inputs && model.inputs[0]?.name);
-            let outputName = (model.outputNodes && model.outputNodes[0]) || (model.outputs && model.outputs[0]?.name);
-
-            // Helpful fallbacks for common SavedModel→TFJS names
-            const candidates = [
-                inputName,
-                'serving_default_image:0',
-                'serving_default_input_1:0',
-                'image:0',
-                'input_1:0'
-            ].filter(Boolean);
-
-            let out;
-            let lastErr;
-            for (const name of candidates) {
-                try {
-                console.log('Trying input name:', name, 'output:', outputName);
-                out = await model.executeAsync({ [name]: tensor }, outputName ? [outputName] : undefined);
-                inputName = name; // lock the working one
-                break;
-                } catch (e) {
-                lastErr = e;
-                }
-            }
-            if (!out) {
-                throw lastErr || new Error('Could not execute model with any candidate input name.');
-            }
-
-            const y = Array.isArray(out) ? out[0] : out;
-            const scores = await y.data();
-            const score = scores[0];
-
-            if (Array.isArray(out)) out.forEach(t => t.dispose());
-            else y.dispose();
-
-            return score; 
-        };
-    </script>
+    <script src="app.js" defer></script>
 </body>
 </html>
