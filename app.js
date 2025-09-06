@@ -25,6 +25,12 @@ async function loadModel() {
 
     uploadArea.classList.remove('disabled');
     uploadArea.querySelector('p em').textContent = 'Ready to analyze your images!';
+
+    const uploadBtn = document.getElementById('upload-btn');
+    if (uploadBtn) {
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = 'Choose Image';
+    }
   } catch (error) {
     console.error('❌ Model loading failed:', error);
     statusEl.innerHTML = `

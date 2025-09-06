@@ -113,8 +113,13 @@
         }
         
         .file-input {
-            display: none;
+            position: absolute;
+            left: -9999px;     /* keep it in the DOM so label/button clicks work */
+            width: 1px;
+            height: 1px;
+            opacity: 0;
         }
+
         
         .upload-btn {
             background: linear-gradient(45deg, #667eea, #764ba2);
@@ -265,20 +270,28 @@
         
         <div id="upload-area" class="upload-area disabled" role="region" aria-label="Image upload area">
             <div>
-              <h3>📸 Upload or Drag & Drop an Image</h3>
-              <p>Supports JPG, PNG, GIF formats</p>
-              <p><em>Upload disabled until model loads...</em></p>
+                <h3>📸 Upload or Drag & Drop an Image</h3>
+                <p>Supports JPG, PNG, GIF formats</p>
+                <p><em>Upload disabled until model loads...</em></p>
                 
-              <label for="fileInput" class="upload-btn" role="button" aria-label="Choose image to classify">
-                Choose Image
-              </label>
-              <input
-                type="file"
-                id="fileInput"
-                name="image"
-                class="file-input"
-                accept="image/*"
-              />
+                <button id="upload-btn"
+                        class="upload-btn"
+                        type="button"
+                        aria-label="Choose image to classify"
+                        onclick="handleUploadClick()"
+                        disabled>
+                  Choose Image
+                </button>
+                
+                <input
+                  type="file"
+                  id="fileInput"
+                  name="image"
+                  class="file-input"
+                  accept="image/*"
+                  onchange="handleImageUpload(event)"
+                />
+                
             </div>
           </div>
           
