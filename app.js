@@ -89,6 +89,22 @@ function showImagePreview(src) {
   $('result').style.display = 'none';
 }
 
+function drawCenterCropped(img, size=150) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  const side = Math.min(iw, ih);
+  const sx = Math.floor((iw - side) / 2);
+  const sy = Math.floor((ih - side) / 2);
+
+  // draw cropped square → 150x150
+  ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+  return canvas;
+}
+
 function showResult(prediction) {
   const resultDiv = $('result');
   const predictionText = $('prediction');

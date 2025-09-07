@@ -7,8 +7,8 @@ import keras
 from tensorflowjs.converters import save_keras_model
 
 # ---- paths (edit if needed) ----
-src = Path(r"C:\Users\Mana\OneDrive\Documents\Github Projects\cats-vs-dogs-classifier\cats-vs-dogs-classifier\models\cats_dogs_resnet.keras")
-out_dir = Path(r"C:\Users\Mana\OneDrive\Documents\Github Projects\cats-vs-dogs-classifier\cats-vs-dogs-classifier\models\tfjs_model")
+src = Path(r"C:\Users\Mana\OneDrive\Documents\Github Projects\cats-vs-dogs-classifier\cats-vs-dogs-classifier\models\best_finetune.keras")
+out_dir = Path(r"C:\Users\Mana\OneDrive\Documents\Github Projects\cats-vs-dogs-classifier\cats-vs-dogs-classifier\models\tfjs_model_improved")
 
 print("TF:", tf.__version__, "| Keras:", keras.__version__)
 print("Loading:", src.resolve())

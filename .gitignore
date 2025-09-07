@@ -4,3 +4,4 @@
 .venv/
 venv/
 /models/savedmodel_k3/
+/models/savedmodel_best_noaug/
