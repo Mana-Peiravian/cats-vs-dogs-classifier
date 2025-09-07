@@ -7,11 +7,11 @@ async function loadModel() {
   const statusEl = $('model-status');
   const uploadArea = $('upload-area');
 
-  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/Mana-Peiravian/cats-vs-dogs-classifier@v0.1.0/models/tfjs_model_fp16/model.json';
+  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/Mana-Peiravian/cats-vs-dogs-classifier@v0.1.1/models/tfjs_model_improved/model.json';
   
 
   try {
-    console.log('🔄 Loading model from:', 'https://cdn.jsdelivr.net/gh/Mana-Peiravian/cats-vs-dogs-classifier@v0.1.0/models/tfjs_model_fp16/model.json');
+    console.log('🔄 Loading model from:', 'https://cdn.jsdelivr.net/gh/Mana-Peiravian/cats-vs-dogs-classifier@v0.1.1/models/tfjs_model_improved/model.json');
     statusEl.textContent = '🔄 Downloading model files...';
     statusEl.className = 'model-status loading';
 
@@ -46,40 +46,61 @@ async function loadModel() {
 }
 
 async function runInference(tensor) {
-  let inputName  = (model.inputNodes && model.inputNodes[0]) || (model.inputs && model.inputs[0]?.name);
-  let outputName = (model.outputNodes && model.outputNodes[0]) || (model.outputs && model.outputs[0]?.name);
-
-  const candidates = [
-    inputName,
-    'serving_default_image:0',
-    'serving_default_input_1:0',
-    'image:0',
-    'input_1:0'
-  ].filter(Boolean);
+  const inName = 'image';
+  const outName = 'output_0';
 
   let out;
-  let lastErr;
-  for (const name of candidates) {
-    try {
-      console.log('Trying input name:', name, 'output:', outputName);
-      out = await model.executeAsync({ [name]: tensor }, outputName ? [outputName] : undefined);
-      inputName = name;
-      break;
-    } catch (e) {
-      lastErr = e;
-    }
+  try {
+    // Try with an explicit fetch of the output
+    out = await model.executeAsync({ [inName]: tensor }, [outName]);
+  } catch {
+    // Fallback (some TFJS builds don’t need the output list)
+    out = await model.executeAsync({ [inName]: tensor });
   }
-  if (!out) throw lastErr || new Error('Could not execute model with any candidate input name.');
 
   const y = Array.isArray(out) ? out[0] : out;
-  const scores = await y.data();
-  const score = scores[0];
+  const vals = await y.data();
+  const score = vals[0];
 
-  if (Array.isArray(out)) out.forEach(t => t.dispose());
-  else y.dispose();
-
+  if (Array.isArray(out)) out.forEach(t => t.dispose()); else y.dispose();
   return score;
 }
+
+// async function runInference(tensor) {
+//   let inputName  = (model.inputNodes && model.inputNodes[0]) || (model.inputs && model.inputs[0]?.name);
+//   let outputName = (model.outputNodes && model.outputNodes[0]) || (model.outputs && model.outputs[0]?.name);
+
+//   const candidates = [
+//     inputName,
+//     'serving_default_image:0',
+//     'serving_default_input_1:0',
+//     'image:0',
+//     'input_1:0'
+//   ].filter(Boolean);
+
+//   let out;
+//   let lastErr;
+//   for (const name of candidates) {
+//     try {
+//       console.log('Trying input name:', name, 'output:', outputName);
+//       out = await model.executeAsync({ [name]: tensor }, outputName ? [outputName] : undefined);
+//       inputName = name;
+//       break;
+//     } catch (e) {
+//       lastErr = e;
+//     }
+//   }
+//   if (!out) throw lastErr || new Error('Could not execute model with any candidate input name.');
+
+//   const y = Array.isArray(out) ? out[0] : out;
+//   const scores = await y.data();
+//   const score = scores[0];
+
+//   if (Array.isArray(out)) out.forEach(t => t.dispose());
+//   else y.dispose();
+
+//   return score;
+// }
 
 function showImagePreview(src) {
   const preview = $('imagePreview');
@@ -150,16 +171,18 @@ async function classifyImage(imageData) {
     const img = new Image();
     img.onload = async () => {
       try {
+        const SIZE = 224; // <-- was 150
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = 150;
-        canvas.height = 150;
-        ctx.drawImage(img, 0, 0, 150, 150);
+        canvas.width = SIZE;
+        canvas.height = SIZE;
+        ctx.drawImage(img, 0, 0, SIZE, SIZE);
 
         const tensor = tf.browser.fromPixels(canvas)
           .toFloat()
           .div(255.0)
-          .expandDims(0); // [1,150,150,3]
+          .expandDims(0); // [1,224,224,3]
 
         console.log('📐 Input tensor shape:', tensor.shape);
 
